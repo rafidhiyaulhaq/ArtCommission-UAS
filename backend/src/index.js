@@ -16,7 +16,7 @@ app.use('/api/commissions', commissionRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.send('OK');
+  res.status(200).send('OK');  // Hanya bagian ini yang ditambah status(200)
 });
 
 const port = process.env.PORT || 3000;
