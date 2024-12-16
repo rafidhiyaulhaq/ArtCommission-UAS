@@ -1,10 +1,12 @@
 import { ChakraProvider } from '@chakra-ui/react';
-import Login from './pages/Login';
+import { Box, Text } from '@chakra-ui/react';
 
 function App() {
   return (
     <ChakraProvider>
-      <Login />
+      <Box p={5}>
+        <Text>Test Render</Text>
+      </Box>
     </ChakraProvider>
   );
 }
