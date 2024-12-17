@@ -8,6 +8,15 @@ function Commissions() {
   const [activeTab, setActiveTab] = useState(0);
   const { isOpen, onOpen, onClose } = useDisclosure();
 
+  const getStatusFromTabIndex = (index) => {
+    switch (index) {
+      case 0: return 'active';
+      case 1: return 'pending';
+      case 2: return 'completed';
+      default: return 'all';
+    }
+  };
+
   return (
     <Box>
       <Navbar />
@@ -17,7 +26,7 @@ function Commissions() {
           <Button colorScheme="blue" onClick={onOpen}>Create Commission</Button>
         </Box>
 
-        <Tabs onChange={(index) => setActiveTab(index)}>
+        <Tabs onChange={(index) => setActiveTab(index)} defaultIndex={1}>
           <TabList>
             <Tab>Active</Tab>
             <Tab>Pending</Tab>

@@ -1,18 +1,41 @@
-import { Box, Table, Thead, Tbody, Tr, Th, Td, Badge } from '@chakra-ui/react';
+// frontend/src/components/CommissionList.jsx
+import { Box, Table, Thead, Tbody, Tr, Th, Td, Badge, Spinner } from '@chakra-ui/react';
+import { useState, useEffect } from 'react';
+import { db } from '../config/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 function CommissionList({ status }) {
-  // Dummy data for now
-  const commissions = [
-    {
-      id: 1,
-      title: "Character Design",
-      client: "test123@gmail.com",
-      price: "$50",
-      deadline: "2024-02-01",
-      status: "active"
-    },
-    // More dummy data can be added here
-  ];
+  const [commissions, setCommissions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCommissions = async () => {
+      try {
+        const commissionsRef = collection(db, 'commissions');
+        let q;
+        
+        if (status === 'all') {
+          q = query(commissionsRef);
+        } else {
+          q = query(commissionsRef, where('status', '==', status));
+        }
+
+        const querySnapshot = await getDocs(q);
+        const commissionsData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+
+        setCommissions(commissionsData);
+      } catch (error) {
+        console.error('Error fetching commissions:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCommissions();
+  }, [status]);
 
   const getBadgeColor = (status) => {
     switch (status) {
@@ -22,6 +45,14 @@ function CommissionList({ status }) {
       default: return 'gray';
     }
   };
+
+  if (loading) {
+    return (
+      <Box textAlign="center" py={8}>
+        <Spinner />
+      </Box>
+    );
+  }
 
   return (
     <Box overflowX="auto">
@@ -39,9 +70,9 @@ function CommissionList({ status }) {
           {commissions.map((commission) => (
             <Tr key={commission.id}>
               <Td>{commission.title}</Td>
-              <Td>{commission.client}</Td>
-              <Td>{commission.price}</Td>
-              <Td>{commission.deadline}</Td>
+              <Td>{commission.clientEmail}</Td>
+              <Td>${commission.price}</Td>
+              <Td>{new Date(commission.deadline).toLocaleDateString()}</Td>
               <Td>
                 <Badge colorScheme={getBadgeColor(commission.status)}>
                   {commission.status}
@@ -52,7 +83,7 @@ function CommissionList({ status }) {
         </Tbody>
       </Table>
       
-      {commissions.length === 0 && (
+      {commissions.length === 0 && !loading && (
         <Box textAlign="center" py={8}>
           No commissions found.
         </Box>
