@@ -34,6 +34,22 @@ function App() {
             path="/dashboard" 
             element={user ? <Dashboard /> : <Navigate to="/" />} 
           />
+          <Route 
+            path="/commissions" 
+            element={user ? <Navigate to="/dashboard" /> : <Navigate to="/" />} 
+          />
+          <Route 
+            path="/portfolio" 
+            element={user ? <Navigate to="/dashboard" /> : <Navigate to="/" />} 
+          />
+          <Route 
+            path="/profile" 
+            element={user ? <Navigate to="/dashboard" /> : <Navigate to="/" />} 
+          />
+          <Route 
+            path="/settings" 
+            element={user ? <Navigate to="/dashboard" /> : <Navigate to="/" />} 
+          />
         </Routes>
       </BrowserRouter>
     </ChakraProvider>
