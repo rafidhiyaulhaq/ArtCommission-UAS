@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { auth } from './config/firebase';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Commissions from './pages/Commissions';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -36,7 +37,7 @@ function App() {
           />
           <Route 
             path="/commissions" 
-            element={user ? <Navigate to="/dashboard" /> : <Navigate to="/" />} 
+            element={user ? <Commissions /> : <Navigate to="/" />} 
           />
           <Route 
             path="/portfolio" 
