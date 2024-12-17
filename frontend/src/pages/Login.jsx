@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { auth } from '../config/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { Box, Button, Input, VStack, Text, useToast } from '@chakra-ui/react';
+import { useNavigate } from 'react-router-dom'; // Tambahkan import ini
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const toast = useToast();
+  const navigate = useNavigate(); // Tambahkan ini
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -19,6 +21,7 @@ function Login() {
         status: 'success',
         duration: 3000,
       });
+      navigate('/dashboard'); // Pindahkan ke sini
     } catch (error) {
       toast({
         title: 'Error',
