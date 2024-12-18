@@ -1,29 +1,60 @@
 const { db } = require('../config/firebase');
+const { validateCommissionData, calculateFees } = require('../utils/commission');
+
+// Status transition map
+const VALID_STATUS_TRANSITIONS = {
+  pending: ['active', 'cancelled'],
+  active: ['revision', 'completed', 'cancelled'],
+  revision: ['active', 'completed', 'cancelled'],
+  completed: [],
+  cancelled: []
+};
 
 // Create new commission
 const createCommission = async (req, res) => {
   try {
-    const { title, description, price, artType, requirements } = req.body;
+    const { title, description, price, deadline, requirements } = req.body;
     const clientId = req.user.uid;
+
+    // Validate commission data
+    const validationError = validateCommissionData({ title, description, price, deadline });
+    if (validationError) {
+      return res.status(400).json({ message: validationError });
+    }
+
+    // Calculate fees
+    const { artistFee, platformFee } = calculateFees(price);
 
     const commissionRef = db.collection('commissions').doc();
     await commissionRef.set({
       title,
       description,
       price,
-      artType,
       requirements,
       clientId,
-      artistId: req.body.artistId,
       status: 'pending',
       progress: 0,
+      artistFee,
+      platformFee,
       timeline: {
         created: new Date().toISOString(),
-        deadline: req.body.deadline || null,
+        deadline,
         lastUpdate: new Date().toISOString()
       },
+      milestones: [
+        { name: 'Initial Sketch', progress: 25 },
+        { name: 'Line Art', progress: 50 },
+        { name: 'Coloring', progress: 75 },
+        { name: 'Final Touches', progress: 100 }
+      ],
       files: [],
-      revisions: []
+      revisionCount: 0,
+      maxRevisions: 2,
+      updates: [{
+        timestamp: new Date().toISOString(),
+        status: 'pending',
+        message: 'Commission created'
+      }]
     });
 
     res.status(201).json({
@@ -31,119 +62,148 @@ const createCommission = async (req, res) => {
       message: 'Commission created successfully'
     });
   } catch (error) {
+    console.error('Error creating commission:', error);
     res.status(500).json({ message: 'Error creating commission', error: error.message });
   }
 };
 
-// Get commission by ID
-const getCommission = async (req, res) => {
+// Update commission status
+const updateCommissionStatus = async (req, res) => {
   try {
     const { id } = req.params;
+    const { status, message, progress } = req.body;
+    const userId = req.user.uid;
+
+    const commissionRef = db.collection('commissions').doc(id);
+    const commission = await commissionRef.get();
+
+    if (!commission.exists) {
+      return res.status(404).json({ message: 'Commission not found' });
+    }
+
+    const commissionData = commission.data();
+
+    // Check if user has permission
+    if (userId !== commissionData.clientId && userId !== commissionData.artistId) {
+      return res.status(403).json({ message: 'Unauthorized to update this commission' });
+    }
+
+    // Validate status transition
+    if (!VALID_STATUS_TRANSITIONS[commissionData.status].includes(status)) {
+      return res.status(400).json({
+        message: `Invalid status transition from ${commissionData.status} to ${status}`
+      });
+    }
+
+    const timestamp = new Date().toISOString();
+    const update = {
+      status,
+      'timeline.lastUpdate': timestamp,
+      progress: progress || commissionData.progress,
+      updates: [...commissionData.updates, {
+        timestamp,
+        status,
+        message,
+        progress
+      }]
+    };
+
+    // Special handling for completion
+    if (status === 'completed') {
+      update.completedAt = timestamp;
+    }
+
+    await commissionRef.update(update);
+
+    res.json({ 
+      message: 'Commission status updated successfully',
+      status,
+      timestamp
+    });
+  } catch (error) {
+    console.error('Error updating commission status:', error);
+    res.status(500).json({ message: 'Error updating status', error: error.message });
+  }
+};
+
+// Get commission details
+const getCommissionDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.uid;
+
     const commissionDoc = await db.collection('commissions').doc(id).get();
 
     if (!commissionDoc.exists) {
       return res.status(404).json({ message: 'Commission not found' });
     }
 
+    const commissionData = commissionDoc.data();
+
+    // Check if user has permission
+    if (userId !== commissionData.clientId && userId !== commissionData.artistId) {
+      return res.status(403).json({ message: 'Unauthorized to view this commission' });
+    }
+
     res.json({
       id: commissionDoc.id,
-      ...commissionDoc.data()
+      ...commissionData
     });
   } catch (error) {
+    console.error('Error fetching commission:', error);
     res.status(500).json({ message: 'Error fetching commission', error: error.message });
   }
 };
 
-// Update commission progress
-const updateProgress = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { progress, status, message } = req.body;
-    const timestamp = new Date().toISOString();
-
-    const commissionRef = db.collection('commissions').doc(id);
-    const commission = await commissionRef.get();
-
-    if (!commission.exists) {
-      return res.status(404).json({ message: 'Commission not found' });
-    }
-
-    await commissionRef.update({
-      progress,
-      status,
-      'timeline.lastUpdate': timestamp,
-      updates: [...(commission.data().updates || []), {
-        timestamp,
-        message,
-        progress,
-        status
-      }]
-    });
-
-    res.json({ message: 'Progress updated successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error updating progress', error: error.message });
-  }
-};
-
-// Submit final artwork
-const submitArtwork = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { fileUrl, fileType } = req.body;
-
-    const commissionRef = db.collection('commissions').doc(id);
-    const commission = await commissionRef.get();
-
-    if (!commission.exists) {
-      return res.status(404).json({ message: 'Commission not found' });
-    }
-
-    await commissionRef.update({
-      status: 'completed',
-      progress: 100,
-      'timeline.completed': new Date().toISOString(),
-      files: [...(commission.data().files || []), {
-        url: fileUrl,
-        type: fileType,
-        uploadedAt: new Date().toISOString()
-      }]
-    });
-
-    res.json({ message: 'Artwork submitted successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error submitting artwork', error: error.message });
-  }
-};
-
-// Get all commissions for a user (either as artist or client)
+// Get user's commissions
 const getUserCommissions = async (req, res) => {
   try {
     const userId = req.user.uid;
+    const { status, role } = req.query;
 
-    const commissions = await db.collection('commissions')
-      .where('clientId', '==', userId)
-      .get();
+    let query = db.collection('commissions');
 
-    const artistCommissions = await db.collection('commissions')
-      .where('artistId', '==', userId)
-      .get();
+    // Filter by user role (client or artist)
+    if (role === 'client') {
+      query = query.where('clientId', '==', userId);
+    } else if (role === 'artist') {
+      query = query.where('artistId', '==', userId);
+    } else {
+      // If no role specified, get both
+      const [clientCommissions, artistCommissions] = await Promise.all([
+        query.where('clientId', '==', userId).get(),
+        query.where('artistId', '==', userId).get()
+      ]);
 
-    const allCommissions = [
-      ...commissions.docs.map(doc => ({ id: doc.id, ...doc.data() })),
-      ...artistCommissions.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-    ];
+      const allCommissions = [
+        ...clientCommissions.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+        ...artistCommissions.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      ];
 
-    res.json(allCommissions);
+      return res.json(allCommissions);
+    }
+
+    // Additional status filter if provided
+    if (status) {
+      query = query.where('status', '==', status);
+    }
+
+    const snapshot = await query.get();
+    const commissions = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    res.json(commissions);
   } catch (error) {
+    console.error('Error fetching user commissions:', error);
     res.status(500).json({ message: 'Error fetching commissions', error: error.message });
   }
 };
 
 module.exports = {
   createCommission,
-  getCommission,
-  updateProgress,
-  submitArtwork,
+  updateCommissionStatus,
+  getCommissionDetails,
   getUserCommissions
 };
