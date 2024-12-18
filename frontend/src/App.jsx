@@ -14,39 +14,41 @@ function App() {
 
   if (loading) {
     return (
-      <Center h="100vh">
-        <Spinner size="xl" color="blue.500" />
-      </Center>
+      <ChakraProvider>
+        <Center h="100vh">
+          <Spinner size="xl" color="blue.500" />
+        </Center>
+      </ChakraProvider>
     );
   }
 
   return (
     <ChakraProvider>
-      <Router basename="/ArtCommission-UAS">
+      <Router>
         <Routes>
           <Route 
             path="/" 
-            element={user ? <Navigate to="/dashboard" /> : <Login />}
+            element={user ? <Navigate to="/dashboard" /> : <Login />} 
           />
           <Route 
             path="/dashboard" 
-            element={user ? <Dashboard /> : <Navigate to="/" />}
+            element={user ? <Dashboard /> : <Navigate to="/" />} 
           />
           <Route 
             path="/commissions" 
-            element={user ? <Commissions /> : <Navigate to="/" />}
+            element={user ? <Commissions /> : <Navigate to="/" />} 
           />
           <Route 
             path="/commissions/:commissionId" 
-            element={user ? <Commissions /> : <Navigate to="/" />}
+            element={user ? <Commissions /> : <Navigate to="/" />} 
           />
           <Route 
             path="/portfolio" 
-            element={user ? <Portfolio /> : <Navigate to="/" />}
+            element={user ? <Portfolio /> : <Navigate to="/" />} 
           />
           <Route 
             path="*" 
-            element={<Navigate to="/" />}
+            element={<Navigate to="/" replace />} 
           />
         </Routes>
       </Router>

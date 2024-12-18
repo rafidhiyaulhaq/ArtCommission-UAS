@@ -18,24 +18,27 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
-  Text
+  Text,
+  useToast
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
 import { db } from '../config/firebase';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { Search, ChevronDown } from 'lucide-react';
 
-function CommissionList({ status }) {
+function CommissionList({ status, onCommissionClick }) {
   const [commissions, setCommissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [priceFilter, setPriceFilter] = useState('all');
   const [sortBy, setSortBy] = useState('deadline');
   const [sortOrder, setSortOrder] = useState('asc');
+  const toast = useToast();
 
   useEffect(() => {
     const fetchCommissions = async () => {
       try {
+        console.log('Fetching commissions with status:', status);
         const commissionsRef = collection(db, 'commissions');
         let q = commissionsRef;
 
@@ -47,17 +50,22 @@ function CommissionList({ status }) {
         // Add sorting
         q = query(q, orderBy(sortBy, sortOrder));
 
+        console.log('Query configuration:', { status, sortBy, sortOrder });
         const querySnapshot = await getDocs(q);
+        console.log('Raw query result size:', querySnapshot.size);
+
         let commissionsData = querySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         }));
 
+        console.log('Raw commissions data:', commissionsData);
+
         // Client-side filtering
         if (searchTerm) {
           commissionsData = commissionsData.filter(commission =>
-            commission.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            commission.clientEmail.toLowerCase().includes(searchTerm.toLowerCase())
+            commission.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            commission.clientEmail?.toLowerCase().includes(searchTerm.toLowerCase())
           );
         }
 
@@ -77,9 +85,16 @@ function CommissionList({ status }) {
           });
         }
 
+        console.log('Filtered commissions:', commissionsData);
         setCommissions(commissionsData);
       } catch (error) {
         console.error('Error fetching commissions:', error);
+        toast({
+          title: 'Error fetching commissions',
+          description: error.message,
+          status: 'error',
+          duration: 5000,
+        });
       } finally {
         setLoading(false);
       }
@@ -102,6 +117,8 @@ function CommissionList({ status }) {
       case 'active': return 'green';
       case 'pending': return 'yellow';
       case 'completed': return 'blue';
+      case 'revision': return 'purple';
+      case 'cancelled': return 'red';
       default: return 'gray';
     }
   };
@@ -109,7 +126,7 @@ function CommissionList({ status }) {
   if (loading) {
     return (
       <Box textAlign="center" py={8}>
-        <Spinner />
+        <Spinner size="lg" color="blue.500" />
       </Box>
     );
   }
@@ -141,7 +158,7 @@ function CommissionList({ status }) {
 
         <Menu>
           <MenuButton as={Button} rightIcon={<ChevronDown />}>
-            Sort By: {sortBy}
+            Sort By: {sortBy.charAt(0).toUpperCase() + sortBy.slice(1)}
           </MenuButton>
           <MenuList>
             <MenuItem onClick={() => handleSort('deadline')}>Deadline</MenuItem>
@@ -170,10 +187,15 @@ function CommissionList({ status }) {
           </Thead>
           <Tbody>
             {commissions.map((commission) => (
-              <Tr key={commission.id}>
+              <Tr 
+                key={commission.id}
+                onClick={() => onCommissionClick?.(commission.id)}
+                cursor={onCommissionClick ? "pointer" : "default"}
+                _hover={onCommissionClick ? { bg: "gray.50" } : {}}
+              >
                 <Td>{commission.title}</Td>
                 <Td>{commission.clientEmail}</Td>
-                <Td>${commission.price}</Td>
+                <Td>${commission.price?.toLocaleString()}</Td>
                 <Td>{new Date(commission.deadline).toLocaleDateString()}</Td>
                 <Td>
                   <Badge colorScheme={getBadgeColor(commission.status)}>
@@ -187,7 +209,7 @@ function CommissionList({ status }) {
 
         {commissions.length === 0 && !loading && (
           <Box textAlign="center" py={8}>
-            <Text>No commissions found.</Text>
+            <Text color="gray.600">No commissions found.</Text>
           </Box>
         )}
       </Box>
