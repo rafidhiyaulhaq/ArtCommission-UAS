@@ -1,31 +1,23 @@
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ChakraProvider } from '@chakra-ui/react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from './config/firebase';
+
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Commissions from './pages/Commissions';
+import Portfolio from './pages/Portfolio';
 
 function App() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setUser(user);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
+  const [user, loading] = useAuthState(auth);
 
   if (loading) {
-    return null;
+    return <div>Loading...</div>;
   }
 
   return (
     <ChakraProvider>
-      <BrowserRouter basename="/ArtCommission-UAS">
+      <Router>
         <Routes>
           <Route 
             path="/" 
@@ -40,19 +32,15 @@ function App() {
             element={user ? <Commissions /> : <Navigate to="/" />} 
           />
           <Route 
+            path="/commissions/:commissionId" 
+            element={user ? <Commissions /> : <Navigate to="/" />} 
+          />
+          <Route 
             path="/portfolio" 
-            element={user ? <Navigate to="/dashboard" /> : <Navigate to="/" />} 
-          />
-          <Route 
-            path="/profile" 
-            element={user ? <Navigate to="/dashboard" /> : <Navigate to="/" />} 
-          />
-          <Route 
-            path="/settings" 
-            element={user ? <Navigate to="/dashboard" /> : <Navigate to="/" />} 
+            element={user ? <Portfolio /> : <Navigate to="/" />} 
           />
         </Routes>
-      </BrowserRouter>
+      </Router>
     </ChakraProvider>
   );
 }
