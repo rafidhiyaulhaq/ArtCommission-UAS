@@ -13,29 +13,38 @@ const VALID_STATUS_TRANSITIONS = {
 // Create new commission
 const createCommission = async (req, res) => {
   try {
-    const { title, description, price, deadline, requirements } = req.body;
-    const clientId = req.user.uid;
+    // Extract and validate request body with defaults
+    const title = req.body.title || '';
+    const description = req.body.description || '';
+    const price = Number(req.body.price) || 0;
+    const deadline = req.body.deadline || '';
+    const requirements = req.body.requirements || '';
 
-    // Validate commission data
-    const validationError = validateCommissionData({ title, description, price, deadline });
-    if (validationError) {
-      return res.status(400).json({ message: validationError });
+    // Additional validation to ensure no undefined values
+    if (!title || !description || !price || !deadline) {
+      return res.status(400).json({ 
+        message: 'Missing required fields',
+        details: 'Title, description, price, and deadline are required'
+      });
     }
 
-    // Calculate fees
-    const { artistFee, platformFee } = calculateFees(price);
+    // Get client ID from auth
+    const clientId = req.user?.uid;
+    if (!clientId) {
+      return res.status(401).json({ message: 'Unauthorized: No user ID found' });
+    }
 
-    const commissionRef = db.collection('commissions').doc();
-    await commissionRef.set({
-      title,
-      description,
-      price,
-      requirements,
+    // Create the commission data object
+    const commissionData = {
+      title: title.trim(),
+      description: description.trim(),
+      price: Number(price),
+      requirements: requirements.trim(),
       clientId,
       status: 'pending',
       progress: 0,
-      artistFee,
-      platformFee,
+      artistFee: price * 0.7, // 70% for artist
+      platformFee: price * 0.3, // 30% for platform
       timeline: {
         created: new Date().toISOString(),
         deadline,
@@ -55,19 +64,29 @@ const createCommission = async (req, res) => {
         status: 'pending',
         message: 'Commission created'
       }]
-    });
+    };
 
+    // Create document in Firestore
+    const commissionRef = db.collection('commissions').doc();
+    await commissionRef.set(commissionData);
+
+    // Return success response
     res.status(201).json({
       id: commissionRef.id,
-      message: 'Commission created successfully'
+      message: 'Commission created successfully',
+      data: commissionData
     });
+
   } catch (error) {
     console.error('Error creating commission:', error);
-    res.status(500).json({ message: 'Error creating commission', error: error.message });
+    res.status(500).json({ 
+      message: 'Error creating commission', 
+      error: error.message 
+    });
   }
 };
 
-// Update commission status
+// Rest of the code remains the same
 const updateCommissionStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -103,8 +122,8 @@ const updateCommissionStatus = async (req, res) => {
       updates: [...commissionData.updates, {
         timestamp,
         status,
-        message,
-        progress
+        message: message || '',
+        progress: progress || commissionData.progress
       }]
     };
 
@@ -126,7 +145,6 @@ const updateCommissionStatus = async (req, res) => {
   }
 };
 
-// Get commission details
 const getCommissionDetails = async (req, res) => {
   try {
     const { id } = req.params;
@@ -155,7 +173,6 @@ const getCommissionDetails = async (req, res) => {
   }
 };
 
-// Get user's commissions
 const getUserCommissions = async (req, res) => {
   try {
     const userId = req.user.uid;
