@@ -23,7 +23,7 @@ import {
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
 import { db } from '../config/firebase';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { Search, ChevronDown } from 'lucide-react';
 
 function CommissionList({ status, onCommissionClick }) {
@@ -40,17 +40,16 @@ function CommissionList({ status, onCommissionClick }) {
       try {
         console.log('Fetching commissions with status:', status);
         const commissionsRef = collection(db, 'commissions');
-        let q = commissionsRef;
+        let q;
 
-        // Base query with status filter
+        // Hanya gunakan where filter, tanpa orderBy
         if (status !== 'all') {
-          q = query(q, where('status', '==', status));
+          q = query(commissionsRef, where('status', '==', status));
+        } else {
+          q = query(commissionsRef);
         }
 
-        // Add sorting
-        q = query(q, orderBy(sortBy, sortOrder));
-
-        console.log('Query configuration:', { status, sortBy, sortOrder });
+        console.log('Query configuration:', { status });
         const querySnapshot = await getDocs(q);
         console.log('Raw query result size:', querySnapshot.size);
 
@@ -60,6 +59,28 @@ function CommissionList({ status, onCommissionClick }) {
         }));
 
         console.log('Raw commissions data:', commissionsData);
+
+        // Sorting di client-side
+        commissionsData.sort((a, b) => {
+          if (sortBy === 'deadline') {
+            const dateA = new Date(a.deadline || '');
+            const dateB = new Date(b.deadline || '');
+            return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+          }
+          if (sortBy === 'price') {
+            const priceA = a.price || 0;
+            const priceB = b.price || 0;
+            return sortOrder === 'asc' ? priceA - priceB : priceB - priceA;
+          }
+          if (sortBy === 'title') {
+            const titleA = a.title || '';
+            const titleB = b.title || '';
+            return sortOrder === 'asc' 
+              ? titleA.localeCompare(titleB)
+              : titleB.localeCompare(titleA);
+          }
+          return 0;
+        });
 
         // Client-side filtering
         if (searchTerm) {
@@ -72,20 +93,21 @@ function CommissionList({ status, onCommissionClick }) {
         // Price filtering
         if (priceFilter !== 'all') {
           commissionsData = commissionsData.filter(commission => {
+            const price = commission.price || 0;
             switch (priceFilter) {
               case 'under50':
-                return commission.price < 50;
+                return price < 50;
               case '50to100':
-                return commission.price >= 50 && commission.price <= 100;
+                return price >= 50 && price <= 100;
               case 'over100':
-                return commission.price > 100;
+                return price > 100;
               default:
                 return true;
             }
           });
         }
 
-        console.log('Filtered commissions:', commissionsData);
+        console.log('Filtered and sorted commissions:', commissionsData);
         setCommissions(commissionsData);
       } catch (error) {
         console.error('Error fetching commissions:', error);
@@ -196,7 +218,7 @@ function CommissionList({ status, onCommissionClick }) {
                 <Td>{commission.title}</Td>
                 <Td>{commission.clientEmail}</Td>
                 <Td>${commission.price?.toLocaleString()}</Td>
-                <Td>{new Date(commission.deadline).toLocaleDateString()}</Td>
+                <Td>{commission.deadline ? new Date(commission.deadline).toLocaleDateString() : '-'}</Td>
                 <Td>
                   <Badge colorScheme={getBadgeColor(commission.status)}>
                     {commission.status}
