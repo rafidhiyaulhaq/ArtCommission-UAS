@@ -1,11 +1,10 @@
 const express = require('express');
 const { verifyToken } = require('../utils/auth');
-const { 
-    createCommission, 
-    getCommission, 
-    updateProgress,
-    submitArtwork, 
-    getUserCommissions 
+const {
+  createCommission,
+  getCommissionDetails,
+  updateCommissionStatus,
+  getUserCommissions
 } = require('../controllers/commission.controller');
 
 const router = express.Router();
@@ -16,16 +15,13 @@ router.use(verifyToken);
 // Create new commission
 router.post('/', createCommission);
 
-// Get commission detail
-router.get('/:id', getCommission);
-
-// Get user's commissions
+// Get all user's commissions (harus berada sebelum route dengan parameter)
 router.get('/user/all', getUserCommissions);
 
-// Update commission progress
-router.put('/:id/progress', updateProgress);
+// Get specific commission detail (setelah route spesifik)
+router.get('/:id', getCommissionDetails);
 
-// Submit final artwork
-router.post('/:id/submit', submitArtwork);
+// Update commission status and progress
+router.put('/:id/status', updateCommissionStatus);
 
 module.exports = router;
