@@ -8,38 +8,18 @@ import {
   TabPanel, 
   Button, 
   Text, 
-  useDisclosure,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  useToast
+  useDisclosure
 } from '@chakra-ui/react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import CommissionList from '../components/CommissionList';
-import CommissionDetail from '../components/CommissionDetail';
 import CreateCommissionModal from '../components/CreateCommissionModal';
-import { useState } from 'react';
+import CommissionDetail from '../components/CommissionDetail';
 
 function Commissions() {
-  const [activeTab, setActiveTab] = useState(0);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { commissionId } = useParams();
   const navigate = useNavigate();
-  const toast = useToast();
-
-  const getStatusFromTabIndex = (index) => {
-    switch (index) {
-      case 0: return 'active';
-      case 1: return 'pending';
-      case 2: return 'completed';
-      default: return 'all';
-    }
-  };
-
-  const handleCommissionClick = (id) => {
-    navigate(`/commissions/${id}`);
-  };
 
   const handleBackToList = () => {
     navigate('/commissions');
@@ -67,7 +47,7 @@ function Commissions() {
               </Button>
             </Box>
 
-            <Tabs onChange={(index) => setActiveTab(index)} defaultIndex={1}>
+            <Tabs defaultIndex={1}>
               <TabList>
                 <Tab>Active</Tab>
                 <Tab>Pending</Tab>
@@ -76,22 +56,13 @@ function Commissions() {
 
               <TabPanels>
                 <TabPanel>
-                  <CommissionList 
-                    status="active" 
-                    onCommissionClick={handleCommissionClick}
-                  />
+                  <CommissionList status="active" />
                 </TabPanel>
                 <TabPanel>
-                  <CommissionList 
-                    status="pending" 
-                    onCommissionClick={handleCommissionClick}
-                  />
+                  <CommissionList status="pending" />
                 </TabPanel>
                 <TabPanel>
-                  <CommissionList 
-                    status="completed" 
-                    onCommissionClick={handleCommissionClick}
-                  />
+                  <CommissionList status="completed" />
                 </TabPanel>
               </TabPanels>
             </Tabs>
