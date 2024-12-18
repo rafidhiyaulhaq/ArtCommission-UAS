@@ -1,79 +1,97 @@
 import { useState } from 'react';
+import {
+  Box,
+  Button,
+  Container,
+  FormControl,
+  FormLabel,
+  Input,
+  VStack,
+  Heading,
+  Text,
+  useToast
+} from '@chakra-ui/react';
 import { auth } from '../config/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { Box, Button, Input, VStack, Text, useToast } from '@chakra-ui/react';
-import { useNavigate } from 'react-router-dom'; // Tambahkan import ini
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
   const toast = useToast();
-  const navigate = useNavigate(); // Tambahkan ini
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const token = await userCredential.user.getIdToken();
-      console.log('Token:', token);
+      console.log('Your authentication token:', token);
+      
       toast({
-        title: 'Login Success',
+        title: 'Login successful',
+        description: 'Token has been logged to console',
         status: 'success',
-        duration: 3000,
+        duration: 5000,
       });
-      navigate('/dashboard'); // Pindahkan ke sini
+      
+      navigate('/dashboard');
     } catch (error) {
       toast({
-        title: 'Error',
+        title: 'Login failed',
         description: error.message,
         status: 'error',
-        duration: 3000,
+        duration: 5000,
       });
-    }
-  };
-
-  const handleSignUp = async () => {
-    try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      toast({
-        title: 'Account created',
-        status: 'success',
-        duration: 3000,
-      });
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: error.message,
-        status: 'error',
-        duration: 3000,
-      });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Box p={8}>
-      <VStack spacing={4} align="stretch" maxW="400px" mx="auto">
-        <Text fontSize="2xl" textAlign="center">ArtCommission Login</Text>
-        <Input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <Input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <Button colorScheme="blue" onClick={handleLogin}>
-          Login
-        </Button>
-        <Button variant="outline" onClick={handleSignUp}>
-          Sign Up
-        </Button>
+    <Container maxW="container.sm" py={10}>
+      <VStack spacing={8}>
+        <Heading>Login to ArtCommission</Heading>
+        <Box w="100%" p={8} borderWidth={1} borderRadius="lg">
+          <form onSubmit={handleSubmit}>
+            <VStack spacing={4}>
+              <FormControl isRequired>
+                <FormLabel>Email</FormLabel>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </FormControl>
+
+              <FormControl isRequired>
+                <FormLabel>Password</FormLabel>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </FormControl>
+
+              <Button 
+                type="submit" 
+                colorScheme="blue" 
+                width="100%" 
+                isLoading={loading}
+              >
+                Login
+              </Button>
+            </VStack>
+          </form>
+        </Box>
+        <Text fontSize="sm">
+          Note: After login, check the browser console (F12) for your auth token
+        </Text>
       </VStack>
-    </Box>
+    </Container>
   );
 }
 
