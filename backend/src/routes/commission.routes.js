@@ -9,15 +9,19 @@ const {
 
 const router = express.Router();
 
-// Protected routes - semua perlu autentikasi
-router.use((req, res, next) => {
-  verifyToken(req, res, next);
-});
+// Gunakan verifyToken sebagai middleware untuk semua routes
+router.use(verifyToken);
 
-// Routes
+// Create new commission
 router.post('/', createCommission);
+
+// Get user's commissions
 router.get('/user/all', getUserCommissions);
+
+// Get commission detail
 router.get('/:id', getCommissionDetails);
+
+// Update commission status
 router.put('/:id/status', updateCommissionStatus);
 
 module.exports = router;
