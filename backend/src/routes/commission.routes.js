@@ -10,18 +10,14 @@ const {
 const router = express.Router();
 
 // Protected routes - semua perlu autentikasi
-router.use(verifyToken);
+router.use((req, res, next) => {
+  verifyToken(req, res, next);
+});
 
-// Create new commission
+// Routes
 router.post('/', createCommission);
-
-// Get all user's commissions (harus berada sebelum route dengan parameter)
 router.get('/user/all', getUserCommissions);
-
-// Get specific commission detail (setelah route spesifik)
 router.get('/:id', getCommissionDetails);
-
-// Update commission status and progress
 router.put('/:id/status', updateCommissionStatus);
 
 module.exports = router;
