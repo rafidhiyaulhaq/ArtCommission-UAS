@@ -9,19 +9,10 @@ const {
 
 const router = express.Router();
 
-// Gunakan verifyToken sebagai middleware untuk semua routes
-router.use(verifyToken);
-
-// Create new commission
-router.post('/', createCommission);
-
-// Get user's commissions
-router.get('/user/all', getUserCommissions);
-
-// Get commission detail
-router.get('/:id', getCommissionDetails);
-
-// Update commission status
-router.put('/:id/status', updateCommissionStatus);
+// Aplikasikan verifyToken ke setiap route secara individual
+router.post('/', verifyToken, createCommission);
+router.get('/user/all', verifyToken, getUserCommissions);
+router.get('/:id', verifyToken, getCommissionDetails);
+router.put('/:id/status', verifyToken, updateCommissionStatus);
 
 module.exports = router;
