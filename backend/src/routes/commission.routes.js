@@ -1,18 +1,36 @@
 const express = require('express');
-const { verifyToken } = require('../utils/auth');
-const {
-  createCommission,
-  getCommissionDetails,
-  updateCommissionStatus,
-  getUserCommissions
-} = require('../controllers/commission.controller');
+const authMiddleware = require('../utils/auth');
+const commissionController = require('../controllers/commission.controller');
 
 const router = express.Router();
 
-// Aplikasikan verifyToken ke setiap route secara individual
-router.post('/', verifyToken, createCommission);
-router.get('/user/all', verifyToken, getUserCommissions);
-router.get('/:id', verifyToken, getCommissionDetails);
-router.put('/:id/status', verifyToken, updateCommissionStatus);
+// Debug log untuk melihat imported functions
+console.log('Controller functions:', {
+  create: typeof commissionController.createCommission,
+  get: typeof commissionController.getCommissionDetails,
+  update: typeof commissionController.updateCommissionStatus,
+  getAll: typeof commissionController.getUserCommissions
+});
+
+// Routes dengan middleware
+router.post('/', 
+  authMiddleware.verifyToken,
+  commissionController.createCommission
+);
+
+router.get('/user/all', 
+  authMiddleware.verifyToken,
+  commissionController.getUserCommissions
+);
+
+router.get('/:id', 
+  authMiddleware.verifyToken,
+  commissionController.getCommissionDetails
+);
+
+router.put('/:id/status', 
+  authMiddleware.verifyToken,
+  commissionController.updateCommissionStatus
+);
 
 module.exports = router;
