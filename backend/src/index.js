@@ -8,21 +8,22 @@ dotenv.config();
 
 const app = express();
 
-// Konfigurasi CORS untuk production
-app.use(cors({
-  origin: [
-    'https://rafidhiyaulhaq.github.io/ArtCommission-UAS/', // Sesuaikan dengan domain GitHub Pages Anda
-    process.env.FRONTEND_URL // Tambahkan variabel environment untuk URL frontend
-  ].filter(Boolean), // Hapus nilai yang undefined/null
+// Production-ready CORS configuration
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || 'https://rafidhiyaulhaq.github.io/ArtCommission-UAS',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  maxAge: 600
+};
 
+app.use(cors(corsOptions));
 app.use(express.json());
 
+// API routes
 app.use('/api/commissions', commissionRoutes);
 
+// Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'success',
@@ -32,9 +33,20 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Error handling
 app.use(errorHandler);
 
-const port = process.env.PORT || 8080;
-app.listen(port, () => {
+// Let Railway assign the port
+const port = process.env.PORT || 3000;
+app.listen(port, '0.0.0.0', () => {
   console.log(`Server berjalan di port ${port}`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  server.close(() => {
+    console.log('HTTP server closed');
+    process.exit(0);
+  });
 });

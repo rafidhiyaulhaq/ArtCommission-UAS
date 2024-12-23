@@ -1,30 +1,20 @@
 const admin = require('firebase-admin');
-const dotenv = require('dotenv');
 
-dotenv.config();
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
-if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
-  throw new Error('FIREBASE_SERVICE_ACCOUNT environment variable is not set');
-}
-
-try {
-  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-  console.log('Konfigurasi Firebase dimuat:', {
-    projectId: serviceAccount.project_id,
-    clientEmail: serviceAccount.client_email
-  });
-  
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
-  
-  console.log('Firebase Admin berhasil diinisialisasi');
-} catch (error) {
-  console.error('Error inisialisasi Firebase Admin:', error);
-  throw error;
-}
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  storageBucket: `${serviceAccount.project_id}.appspot.com`
+});
 
 const db = admin.firestore();
 const auth = admin.auth();
+const storage = admin.storage();
 
-module.exports = { db, auth };
+console.log('Firebase Admin berhasil diinisialisasi');
+
+module.exports = {
+  db,
+  auth,
+  storage
+};
