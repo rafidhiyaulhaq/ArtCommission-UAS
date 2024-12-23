@@ -32,14 +32,3 @@ router.put('/:id/status',
 );
 
 module.exports = router;
-
-// src/index.js
-const express = require('express');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const commissionRoutes = require('./routes/commission.routes');
-const errorHandler = require('./middleware/errorHandler');
-
-dotenv.config();
-
-const app = express();
