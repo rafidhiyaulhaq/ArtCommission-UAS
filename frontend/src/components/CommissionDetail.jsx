@@ -67,14 +67,12 @@ function CommissionDetail({ commissionId }) {
       const docRef = doc(db, 'commissions', commissionId);
       const timestamp = new Date().toISOString();
 
-      // Update commission document
       await updateDoc(docRef, {
         status: newStatus,
         progress: Number(progress),
         lastUpdated: timestamp
       });
 
-      // Add update to history
       const updateRef = collection(db, `commissions/${commissionId}/updates`);
       await addDoc(updateRef, {
         status: newStatus,

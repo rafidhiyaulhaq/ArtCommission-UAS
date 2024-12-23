@@ -1,26 +1,26 @@
+const { auth } = require('../config/firebase');
+
 const verifyToken = async (req, res, next) => {
   try {
-    console.log('Headers:', req.headers); // Log semua headers
-    console.log('Auth header:', req.headers.authorization); // Log header auth spesifik
+    console.log('Headers:', req.headers);
+    console.log('Auth header:', req.headers.authorization);
     
     const token = req.headers.authorization?.split('Bearer ')[1];
     if (!token) {
-      return res.status(401).json({ message: 'No token provided' });
+      return res.status(401).json({ message: 'Token tidak ditemukan' });
     }
     
-    console.log('Token to verify:', token.substring(0, 20) + '...'); // Log awal token
-
+    console.log('Token yang diverifikasi:', token.substring(0, 20) + '...');
+    
     const decodedToken = await auth.verifyIdToken(token);
-    console.log('Decoded token:', decodedToken); // Log token yang sudah di-decode
+    console.log('Token terdekode:', decodedToken);
     
     req.user = decodedToken;
     next();
   } catch (error) {
-    console.error('Auth error:', error); // Log error lengkap
-    res.status(401).json({ 
-      message: 'Invalid token',
-      error: error.message,
-      details: error.stack // Tambah stack trace
-    });
+    console.error('Error auth:', error);
+    next(error);
   }
 };
+
+module.exports = { verifyToken };

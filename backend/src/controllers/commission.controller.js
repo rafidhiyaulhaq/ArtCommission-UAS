@@ -1,7 +1,6 @@
 const { db } = require('../config/firebase');
 const { validateCommissionData, calculateFees } = require('../utils/commission');
 
-// Status transition map
 const VALID_STATUS_TRANSITIONS = {
   pending: ['active', 'cancelled'],
   active: ['revision', 'completed', 'cancelled'],
@@ -10,17 +9,14 @@ const VALID_STATUS_TRANSITIONS = {
   cancelled: []
 };
 
-// Create new commission
 const createCommission = async (req, res) => {
   try {
-    // Extract and validate request body with defaults
     const title = req.body.title || '';
     const description = req.body.description || '';
     const price = Number(req.body.price) || 0;
     const deadline = req.body.deadline || '';
     const requirements = req.body.requirements || '';
 
-    // Additional validation to ensure no undefined values
     if (!title || !description || !price || !deadline) {
       return res.status(400).json({ 
         message: 'Missing required fields',
@@ -28,13 +24,11 @@ const createCommission = async (req, res) => {
       });
     }
 
-    // Get client ID from auth
     const clientId = req.user?.uid;
     if (!clientId) {
       return res.status(401).json({ message: 'Unauthorized: No user ID found' });
     }
 
-    // Create the commission data object
     const commissionData = {
       title: title.trim(),
       description: description.trim(),
@@ -43,8 +37,8 @@ const createCommission = async (req, res) => {
       clientId,
       status: 'pending',
       progress: 0,
-      artistFee: price * 0.7, // 70% for artist
-      platformFee: price * 0.3, // 30% for platform
+      artistFee: price * 0.7, 
+      platformFee: price * 0.3, 
       timeline: {
         created: new Date().toISOString(),
         deadline,
@@ -66,11 +60,9 @@ const createCommission = async (req, res) => {
       }]
     };
 
-    // Create document in Firestore
     const commissionRef = db.collection('commissions').doc();
     await commissionRef.set(commissionData);
 
-    // Return success response
     res.status(201).json({
       id: commissionRef.id,
       message: 'Commission created successfully',
@@ -86,7 +78,6 @@ const createCommission = async (req, res) => {
   }
 };
 
-// Rest of the code remains the same
 const updateCommissionStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -127,7 +118,6 @@ const updateCommissionStatus = async (req, res) => {
       }]
     };
 
-    // Special handling for completion
     if (status === 'completed') {
       update.completedAt = timestamp;
     }
@@ -158,7 +148,6 @@ const getCommissionDetails = async (req, res) => {
 
     const commissionData = commissionDoc.data();
 
-    // Check if user has permission
     if (userId !== commissionData.clientId && userId !== commissionData.artistId) {
       return res.status(403).json({ message: 'Unauthorized to view this commission' });
     }
@@ -180,13 +169,11 @@ const getUserCommissions = async (req, res) => {
 
     let query = db.collection('commissions');
 
-    // Filter by user role (client or artist)
     if (role === 'client') {
       query = query.where('clientId', '==', userId);
     } else if (role === 'artist') {
       query = query.where('artistId', '==', userId);
     } else {
-      // If no role specified, get both
       const [clientCommissions, artistCommissions] = await Promise.all([
         query.where('clientId', '==', userId).get(),
         query.where('artistId', '==', userId).get()

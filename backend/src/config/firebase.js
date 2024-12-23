@@ -9,14 +9,18 @@ if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
 
 try {
   const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  console.log('Konfigurasi Firebase dimuat:', {
+    projectId: serviceAccount.project_id,
+    clientEmail: serviceAccount.client_email
+  });
   
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
   });
-
-  console.log('Firebase Admin initialized successfully');
+  
+  console.log('Firebase Admin berhasil diinisialisasi');
 } catch (error) {
-  console.error('Error initializing Firebase Admin:', error);
+  console.error('Error inisialisasi Firebase Admin:', error);
   throw error;
 }
 

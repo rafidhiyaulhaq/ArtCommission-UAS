@@ -1,5 +1,3 @@
-// utils/commission.js
-
 const validateCommissionData = ({ title, description, price, deadline }) => {
     if (!title || title.trim().length < 3) {
       return 'Title must be at least 3 characters long';
@@ -21,8 +19,8 @@ const validateCommissionData = ({ title, description, price, deadline }) => {
   };
   
   const calculateFees = (price) => {
-    const artistPercentage = 0.7; // 70%
-    const platformPercentage = 0.3; // 30%
+    const artistPercentage = 0.7; 
+    const platformPercentage = 0.3; 
   
     return {
       artistFee: price * artistPercentage,
