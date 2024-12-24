@@ -4,13 +4,10 @@ const commissionController = require('../controllers/commission.controller');
 
 const router = express.Router();
 
-console.log('Fungsi controller:', {
-  create: typeof commissionController.createCommission,
-  get: typeof commissionController.getCommissionDetails,
-  update: typeof commissionController.updateCommissionStatus,
-  getAll: typeof commissionController.getUserCommissions
-});
+// Public routes
+router.get('/public', commissionController.getPublicCommissions);
 
+// Protected routes
 router.post('/', 
   verifyToken,
   commissionController.createCommission

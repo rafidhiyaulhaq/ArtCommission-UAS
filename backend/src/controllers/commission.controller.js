@@ -9,6 +9,36 @@ const VALID_STATUS_TRANSITIONS = {
   cancelled: []
 };
 
+const getPublicCommissions = async (req, res) => {
+  try {
+    const snapshot = await db.collection('commissions')
+      .where('status', '==', 'active')
+      .limit(20)
+      .get();
+    
+    const commissions = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      // Filter out sensitive information
+      clientId: undefined,
+      artistId: undefined,
+      platformFee: undefined
+    }));
+
+    res.json({
+      status: 'success',
+      data: commissions
+    });
+  } catch (error) {
+    console.error('Error fetching public commissions:', error);
+    res.status(500).json({ 
+      status: 'error',
+      message: 'Error fetching commissions', 
+      error: error.message 
+    });
+  }
+};
+
 const createCommission = async (req, res) => {
   try {
     const title = req.body.title || '';
@@ -64,14 +94,18 @@ const createCommission = async (req, res) => {
     await commissionRef.set(commissionData);
 
     res.status(201).json({
-      id: commissionRef.id,
+      status: 'success',
       message: 'Commission created successfully',
-      data: commissionData
+      data: {
+        id: commissionRef.id,
+        ...commissionData
+      }
     });
 
   } catch (error) {
     console.error('Error creating commission:', error);
     res.status(500).json({ 
+      status: 'error',
       message: 'Error creating commission', 
       error: error.message 
     });
@@ -93,12 +127,10 @@ const updateCommissionStatus = async (req, res) => {
 
     const commissionData = commission.data();
 
-    // Check if user has permission
     if (userId !== commissionData.clientId && userId !== commissionData.artistId) {
       return res.status(403).json({ message: 'Unauthorized to update this commission' });
     }
 
-    // Validate status transition
     if (!VALID_STATUS_TRANSITIONS[commissionData.status].includes(status)) {
       return res.status(400).json({
         message: `Invalid status transition from ${commissionData.status} to ${status}`
@@ -125,13 +157,20 @@ const updateCommissionStatus = async (req, res) => {
     await commissionRef.update(update);
 
     res.json({ 
+      status: 'success',
       message: 'Commission status updated successfully',
-      status,
-      timestamp
+      data: {
+        status,
+        timestamp
+      }
     });
   } catch (error) {
     console.error('Error updating commission status:', error);
-    res.status(500).json({ message: 'Error updating status', error: error.message });
+    res.status(500).json({ 
+      status: 'error',
+      message: 'Error updating status', 
+      error: error.message 
+    });
   }
 };
 
@@ -153,12 +192,19 @@ const getCommissionDetails = async (req, res) => {
     }
 
     res.json({
-      id: commissionDoc.id,
-      ...commissionData
+      status: 'success',
+      data: {
+        id: commissionDoc.id,
+        ...commissionData
+      }
     });
   } catch (error) {
     console.error('Error fetching commission:', error);
-    res.status(500).json({ message: 'Error fetching commission', error: error.message });
+    res.status(500).json({ 
+      status: 'error',
+      message: 'Error fetching commission', 
+      error: error.message 
+    });
   }
 };
 
@@ -184,10 +230,12 @@ const getUserCommissions = async (req, res) => {
         ...artistCommissions.docs.map(doc => ({ id: doc.id, ...doc.data() }))
       ];
 
-      return res.json(allCommissions);
+      return res.json({
+        status: 'success',
+        data: allCommissions
+      });
     }
 
-    // Additional status filter if provided
     if (status) {
       query = query.where('status', '==', status);
     }
@@ -198,10 +246,17 @@ const getUserCommissions = async (req, res) => {
       ...doc.data()
     }));
 
-    res.json(commissions);
+    res.json({
+      status: 'success',
+      data: commissions
+    });
   } catch (error) {
     console.error('Error fetching user commissions:', error);
-    res.status(500).json({ message: 'Error fetching commissions', error: error.message });
+    res.status(500).json({ 
+      status: 'error',
+      message: 'Error fetching commissions', 
+      error: error.message 
+    });
   }
 };
 
@@ -209,5 +264,6 @@ module.exports = {
   createCommission,
   updateCommissionStatus,
   getCommissionDetails,
-  getUserCommissions
+  getUserCommissions,
+  getPublicCommissions
 };
